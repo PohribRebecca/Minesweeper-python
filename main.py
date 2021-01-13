@@ -1,5 +1,3 @@
-# Python Version 2.7.3
-# File: minesweeper.py
 
 from tkinter import *
 from tkinter import messagebox as tkMessageBox
@@ -18,12 +16,13 @@ STATE_CLICKED = 1
 STATE_FLAGGED = 2
 
 BTN_CLICK = "<Button-1>"
-BTN_FLAG = "<Button-2>" if platform.system() == 'Darwin' else "<Button-3>"
+BTN_FLAG = "<Button-2>"
 
 window = None
 settings = None
 
-
+"""Settings is the beggining window which gives the player the opportunity to manage the size of the grid, 
+the number of mines and a maximum time in which the game can be resolved """
 class Settings():
     def __init__(self, tk):
         '''self.tk = tk
@@ -47,11 +46,6 @@ class Settings():
         self.button = {
             "Start Game": Button(self.tk, text='Start Game', command=self.startGame)
         }
-        '''
-        self.labels["time"].grid(row=0, column=0, columnspan=SIZE_Y)  # top full width
-        self.labels["mines"].grid(row=SIZE_X + 1, column=0, columnspan=int(SIZE_Y / 2))  # bottom left
-        self.labels["grid"].grid(row=SIZE_X + 1, column=int(SIZE_Y / 2) - 1, columnspan=int(SIZE_Y / 2))  # bottom right
-        '''
 
         self.labels["time"].pack()
         self.labels["mines"].pack()
@@ -71,8 +65,13 @@ class Settings():
         self.button["Start Game"].pack()
         self.button["Start Game"].place(x=150, y=250)
 
+    """the startGame function creates a new Game if the data received from the user is valid. All the entries must 
+    not be 0 or below """
 
     def startGame(self):
+        """
+
+        """
         self.start = 1
         gridSize = self.entries["gridEntry"].get()
         mines = self.entries["mineEntry"].get()
@@ -84,10 +83,11 @@ class Settings():
             game = Minesweeper(window, mines, time, gridSize)
 
         else:
-            res = tkMessageBox.askyesno("Error", "The data you have introduced is not valid!")
+            res = tkMessageBox.showwarning("Error", "The data you have introduced is not valid!")
             self.tk.quit()
 
-
+"""the Minesweeper class creates an instance of the Game. It must receive the # of mines, the amount of time and the 
+grid size """
 class Minesweeper:
 
     def __init__(self, tk, mines, time, gridSize):
@@ -125,9 +125,12 @@ class Minesweeper:
 
         self.restart()  # start game
         self.updateTimer2()  # init timer
-
+    """the setup function creates the mine distribution by randomly distributing them along the board and also it 
+    computes the nr of mine neighbours """
     def setup(self):
+        """
 
+        """
         # create flag and clicked tile variables
         self.flagCount = 0
         self.correctFlagCount = 0
@@ -209,16 +212,29 @@ class Minesweeper:
                     mc += 1 if n["isMine"] else 0
                 self.tiles[x][y]["mines"] = mc
 
+    """the restart function refreshes the window and restarts the time"""
     def restart(self):
+        """
+
+        """
         self.setup()
         self.refreshLabels()
         self.startTime = self.auxTime
 
+    """the restart function refreshes the flag and mines labels"""
     def refreshLabels(self):
+        """
+
+        """
         self.labels["flags"].config(text="Flags: " + str(self.flagCount))
         self.labels["mines"].config(text="Mines: " + str(self.mines))
 
+    """the updateTimer2 function calculates the time format of the given input for time and starts the function. It 
+    is recurssive until the startTime is 0, then the game will be over """
     def updateTimer2(self):
+        """
+
+        """
         mins, secs = divmod(self.startTime, 60)
         timer = '{:02d}:{:02d}'.format(mins, secs)
         if self.startTime > 0:
@@ -231,7 +247,15 @@ class Minesweeper:
             self.startTime = self.auxTime
         self.frame.after(100, self.updateTimer2)
 
+
+    """function for accesing the neighbours"""
     def getNeighbors(self, x, y):
+        """
+
+        :param x:
+        :param y:
+        :return:
+        """
         neighbors = []
         coords = [
             {"x": x - 1, "y": y - 1},  # top right
@@ -250,7 +274,12 @@ class Minesweeper:
                 pass
         return neighbors
 
+    """this function returns the state of the game"""
     def gameOver(self, won):
+        """
+
+        :param won:
+        """
         for x in range(0, self.gridSize):
             for y in range(0, self.gridSize):
                 if self.tiles[x][y]["isMine"] == False and self.tiles[x][y]["state"] == STATE_FLAGGED:
@@ -268,12 +297,28 @@ class Minesweeper:
         self.tk.update()
 
     def onClickWrapper(self, x, y):
+        """
+        :param x:
+        :param y:
+        :return:
+        """
         return lambda Button: self.onClick(self.tiles[x][y])
 
     def onRightClickWrapper(self, x, y):
+        """
+        :param x:
+        :param y:
+        :return:
+        """
         return lambda Button: self.onRightClick(self.tiles[x][y])
 
+    """this function determines if you have clicked a mine or if you have clicked all the non mine tiles"""
     def onClick(self, tile):
+        """
+
+        :param tile:
+        :return:
+        """
         if self.startTime == None:
             self.startTime = datetime.now()
 
@@ -295,7 +340,12 @@ class Minesweeper:
         if self.clickedCount == (self.gridSize * self.gridSize) - self.mines:
             self.gameOver(True)
 
+
+    """same as the onClick function but for flags"""
     def onRightClick(self, tile):
+        """
+        :param tile:
+        """
         if self.startTime == None:
             self.startTime = datetime.now()
 
@@ -321,6 +371,9 @@ class Minesweeper:
             self.refreshLabels()
 
     def clearSurroundingTiles(self, id):
+        """
+        :param id:
+        """
         queue = deque([id])
 
         while len(queue) != 0:
@@ -333,6 +386,12 @@ class Minesweeper:
                 self.clearTile(tile, queue)
 
     def clearTile(self, tile, queue):
+        """
+
+        :param tile:
+        :param queue:
+        :return:
+        """
         if tile["state"] != STATE_DEFAULT:
             return
 
