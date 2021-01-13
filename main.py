@@ -23,6 +23,7 @@ settings = None
 
 """Settings is the beggining window which gives the player the opportunity to manage the size of the grid, 
 the number of mines and a maximum time in which the game can be resolved """
+
 class Settings():
     def __init__(self, tk):
         '''self.tk = tk
@@ -131,6 +132,7 @@ class Minesweeper:
         """
 
         """
+
         # create flag and clicked tile variables
         self.flagCount = 0
         self.correctFlagCount = 0
@@ -138,7 +140,7 @@ class Minesweeper:
         auxMines = self.mines
         self.tiles = dict({})
         #self.tiles[x] = {}
-
+        '''
         for x in range(0, self.gridSize):
             for y in range(0, self.gridSize):
                 if y == 0:
@@ -148,7 +150,7 @@ class Minesweeper:
                 gfx = self.images["plain"]
                 tile = {
                     "id": id,
-                    "isMine": isMine,
+                    "isMine": False,
                     "state": STATE_DEFAULT,
                     "coords": {
                         "x": x,
@@ -167,6 +169,8 @@ class Minesweeper:
             self.tiles[x][y]["isMine"] = True
 
         '''
+
+
         # create buttons
         self.tiles = dict({})
         for x in range(0, self.gridSize):
@@ -202,7 +206,7 @@ class Minesweeper:
                 tile["button"].grid(row=x + 1, column=y)  # offset by 1 row for timer
 
                 self.tiles[x][y] = tile
-              '''
+
 
         # loop again to find nearby mines and display number on tile
         for x in range(0, self.gridSize):
