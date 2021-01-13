@@ -30,7 +30,7 @@ class Settings():
         self.frame = Frame(self.tk)
         self.frame.pack()'''
         self.tk = tk
-        tk.geometry('500x500')
+        tk.geometry('300x300')
 
         # set up labels/UI
         self.labels = {
@@ -47,27 +47,37 @@ class Settings():
         self.button = {
             "Start Game": Button(self.tk, text='Start Game', command=self.startGame)
         }
-
+        '''
         self.labels["time"].grid(row=0, column=0, columnspan=SIZE_Y)  # top full width
         self.labels["mines"].grid(row=SIZE_X + 1, column=0, columnspan=int(SIZE_Y / 2))  # bottom left
         self.labels["grid"].grid(row=SIZE_X + 1, column=int(SIZE_Y / 2) - 1, columnspan=int(SIZE_Y / 2))  # bottom right
+        '''
 
         self.labels["time"].pack()
-        self.labels["time"].place(x=5, y=25)
+        self.labels["mines"].pack()
+        self.labels["grid"].pack()
+        self.labels["mines"].place(x=50, y=50)
+        self.labels["time"].place(x=50, y=100)
+        self.labels["grid"].place(x=40, y=150)
 
-        self.entries["mineEntry"].grid(row=int(SIZE_X / 2), column=0, columnspan=int(SIZE_Y / 2), padx=3, pady=3)
-        self.entries["timeEntry"].grid(row=0, column=0, columnspan=SIZE_Y, padx=3, pady=3)
-        self.entries["gridEntry"].grid(row=SIZE_X + 1, column=int(SIZE_Y / 2) - 1, columnspan=int(SIZE_Y / 2), padx=3,
-                                       pady=3)
-        self.button["Start Game"].grid(row=SIZE_X, column=int(SIZE_Y / 2) - 1, columnspan=int(SIZE_Y / 2), padx=3,
-                                       pady=3)
+        self.entries["mineEntry"].pack()
+        self.entries["timeEntry"].pack()
+        self.entries["gridEntry"].pack()
+
+        self.entries["mineEntry"].place(x=150, y=50)
+        self.entries["timeEntry"].place(x=150, y=100)
+        self.entries["gridEntry"].place(x=150, y=150)
+
+        self.button["Start Game"].pack()
+        self.button["Start Game"].place(x=150, y=250)
+
 
     def startGame(self):
         self.start = 1
         gridSize = self.entries["gridEntry"].get()
         mines = self.entries["mineEntry"].get()
         time = self.entries["timeEntry"].get()
-        mines = int(mines) + 1
+        mines = int(mines)
         time = int(time)
         gridSize = int(gridSize)
         if mines > 0 and time > 0 and gridSize > 0:
@@ -84,6 +94,7 @@ class Minesweeper:
         self.mines = mines
         self.startTime = time
         self.gridSize = gridSize
+        self.auxTime = time
         # import images
         self.images = {
             "plain": PhotoImage(file="images/tile_plain.gif"),
@@ -116,11 +127,43 @@ class Minesweeper:
         self.updateTimer2()  # init timer
 
     def setup(self):
+
         # create flag and clicked tile variables
         self.flagCount = 0
         self.correctFlagCount = 0
         self.clickedCount = 0
+        auxMines = self.mines
+        self.tiles = dict({})
+        #self.tiles[x] = {}
 
+        for x in range(0, self.gridSize):
+            for y in range(0, self.gridSize):
+                if y == 0:
+                    self.tiles[x] = {}
+                id = str(x) + "_" + str(y)
+                isMine = False
+                gfx = self.images["plain"]
+                tile = {
+                    "id": id,
+                    "isMine": isMine,
+                    "state": STATE_DEFAULT,
+                    "coords": {
+                        "x": x,
+                        "y": y
+                    },
+                    "button": Button(self.frame, image=gfx),
+                    "mines": self.mines  # calculated after grid is built
+                }
+                tile["button"].bind(BTN_CLICK, self.onClickWrapper(x, y))
+                tile["button"].bind(BTN_FLAG, self.onRightClickWrapper(x, y))
+                tile["button"].grid(row=x + 1, column=y)  # offset by 1 row for timer
+                self.tiles[x][y] = tile
+
+        for i in range(self.mines):
+            x, y = random.randint(0, self.gridSize), random.randint(0, self.gridSize)
+            self.tiles[x][y]["isMine"] = True
+
+        '''
         # create buttons
         self.tiles = dict({})
         for x in range(0, self.gridSize):
@@ -137,7 +180,7 @@ class Minesweeper:
                 # currently random amount of mines
                 if random.uniform(0.0, 1.0) < 0.1:
                     isMine = True
-                    '''self.mines += 1'''
+                    #self.mines += 1
 
                 tile = {
                     "id": id,
@@ -156,6 +199,7 @@ class Minesweeper:
                 tile["button"].grid(row=x + 1, column=y)  # offset by 1 row for timer
 
                 self.tiles[x][y] = tile
+              '''
 
         # loop again to find nearby mines and display number on tile
         for x in range(0, self.gridSize):
@@ -168,6 +212,7 @@ class Minesweeper:
     def restart(self):
         self.setup()
         self.refreshLabels()
+        self.startTime = self.auxTime
 
     def refreshLabels(self):
         self.labels["flags"].config(text="Flags: " + str(self.flagCount))
@@ -182,6 +227,8 @@ class Minesweeper:
             self.labels["time"].config(text=timer)
         else:
             self.labels["time"].config(text="time is up")
+            self.gameOver(False)
+            self.startTime = self.auxTime
         self.frame.after(100, self.updateTimer2)
 
     def getNeighbors(self, x, y):
@@ -211,14 +258,14 @@ class Minesweeper:
                 if self.tiles[x][y]["isMine"] == True and self.tiles[x][y]["state"] != STATE_FLAGGED:
                     self.tiles[x][y]["button"].config(image=self.images["mine"])
 
-        self.tk.update()
-
-        msg = "You Win! Play again?" if won else "You Lose! Play again?"
-        res = tkMessageBox.askyesno("Game Over", msg)
+        msg = "You Win!" if won else "You Lose!"
+        res = tkMessageBox.showwarning("Game Over", msg)
         if res:
-            self.restart()
-        else:
-            self.tk.quit()
+          self.tk.quit()
+        #else:
+         #   self.tk.quit()
+
+        self.tk.update()
 
     def onClickWrapper(self, x, y):
         return lambda Button: self.onClick(self.tiles[x][y])
