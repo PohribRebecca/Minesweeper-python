@@ -1,14 +1,17 @@
+# Python Version 2.7.3
+# File: minesweeper.py
+
 from tkinter import *
-from tkinter import messagebox as tkMessageBox, ttk
+from tkinter import messagebox as tkMessageBox
 from collections import deque
-import tkinter as tk
 import random
 import platform
+import time
 from datetime import time, date, datetime
 import time
 
-SIZE_X = int(input())
-SIZE_Y = int(input())
+SIZE_X = 50
+SIZE_Y = 20
 
 STATE_DEFAULT = 0
 STATE_CLICKED = 1
@@ -18,27 +21,78 @@ BTN_CLICK = "<Button-1>"
 BTN_FLAG = "<Button-2>" if platform.system() == 'Darwin' else "<Button-3>"
 
 window = None
-START = 1
-"The Minesweeper class crates a frame and its components and it places them"
+settings = None
 
+
+class Settings():
+    def __init__(self, tk):
+        '''self.tk = tk
+        self.frame = Frame(self.tk)
+        self.frame.pack()'''
+        self.tk = tk
+        tk.geometry('500x500')
+
+        # set up labels/UI
+        self.labels = {
+            "time": Label(self.tk, text="time"),
+            "mines": Label(self.tk, text="Mines"),
+            "grid": Label(self.tk, text="Grid Dimension")
+        }
+
+        self.entries = {
+            "mineEntry": Entry(self.tk),
+            "timeEntry": Entry(self.tk),
+            "gridEntry": Entry(self.tk)
+        }
+        self.button = {
+            "Start Game": Button(self.tk, text='Start Game', command=self.startGame)
+        }
+
+        self.labels["time"].grid(row=0, column=0, columnspan=SIZE_Y)  # top full width
+        self.labels["mines"].grid(row=SIZE_X + 1, column=0, columnspan=int(SIZE_Y / 2))  # bottom left
+        self.labels["grid"].grid(row=SIZE_X + 1, column=int(SIZE_Y / 2) - 1, columnspan=int(SIZE_Y / 2))  # bottom right
+
+        self.labels["time"].pack()
+        self.labels["time"].place(x=5, y=25)
+
+        self.entries["mineEntry"].grid(row=int(SIZE_X / 2), column=0, columnspan=int(SIZE_Y / 2), padx=3, pady=3)
+        self.entries["timeEntry"].grid(row=0, column=0, columnspan=SIZE_Y, padx=3, pady=3)
+        self.entries["gridEntry"].grid(row=SIZE_X + 1, column=int(SIZE_Y / 2) - 1, columnspan=int(SIZE_Y / 2), padx=3,
+                                       pady=3)
+        self.button["Start Game"].grid(row=SIZE_X, column=int(SIZE_Y / 2) - 1, columnspan=int(SIZE_Y / 2), padx=3,
+                                       pady=3)
+
+    def startGame(self):
+        self.start = 1
+        gridSize = self.entries["gridEntry"].get()
+        mines = self.entries["mineEntry"].get()
+        time = self.entries["timeEntry"].get()
+        mines = int(mines) + 1
+        time = int(time)
+        gridSize = int(gridSize)
+        if mines > 0 and time > 0 and gridSize > 0:
+            game = Minesweeper(window, mines, time, gridSize)
+
+        else:
+            res = tkMessageBox.askyesno("Error", "The data you have introduced is not valid!")
+            self.tk.quit()
 
 
 class Minesweeper:
 
-    def __init__(self, tk):
-        self.tk = tk
-        self.frame = Frame(self.tk)
-        self.frame.pack()
-
+    def __init__(self, tk, mines, time, gridSize):
+        self.mines = mines
+        self.startTime = time
+        self.gridSize = gridSize
+        # import images
         self.images = {
             "plain": PhotoImage(file="images/tile_plain.gif"),
-            "click": PhotoImage(file="images/tile_clicked.gif"),
+            "clicked": PhotoImage(file="images/tile_clicked.gif"),
             "mine": PhotoImage(file="images/tile_mine.gif"),
             "flag": PhotoImage(file="images/tile_flag.gif"),
             "wrong": PhotoImage(file="images/tile_wrong.gif"),
             "numbers": []
         }
-
         for i in range(1, 9):
             self.images["numbers"].append(PhotoImage(file="images/tile_" + str(i) + ".gif"))
 
@@ -53,10 +107,10 @@ class Minesweeper:
             "mines": Label(self.frame, text="Mines: 0"),
             "flags": Label(self.frame, text="Flags: 0")
         }
-        self.labels["time"].grid(row=0, column=0, columnspan=SIZE_Y)  # top full width
-        self.labels["mines"].grid(row=SIZE_X + 1, column=0, columnspan=int(SIZE_Y / 2))  # bottom left
-        self.labels["flags"].grid(row=SIZE_X + 1, column=int(SIZE_Y / 2) - 1,
-                                  columnspan=int(SIZE_Y / 2))  # bottom right
+        self.labels["time"].grid(row=0, column=0, columnspan=self.gridSize)  # top full width
+        self.labels["mines"].grid(row=SIZE_X + 1, column=0, columnspan=int(self.gridSize / 2))  # bottom left
+        self.labels["flags"].grid(row=SIZE_X + 1, column=int(self.gridSize / 2) - 1,
+                                  columnspan=int(self.gridSize / 2))  # bottom right
 
         self.restart()  # start game
         self.updateTimer2()  # init timer
@@ -66,13 +120,11 @@ class Minesweeper:
         self.flagCount = 0
         self.correctFlagCount = 0
         self.clickedCount = 0
-        self.startTime = 20
 
         # create buttons
         self.tiles = dict({})
-        self.mines = 10
-        for x in range(0, SIZE_X):
-            for y in range(0, SIZE_Y):
+        for x in range(0, self.gridSize):
+            for y in range(0, self.gridSize):
                 if y == 0:
                     self.tiles[x] = {}
 
@@ -106,8 +158,8 @@ class Minesweeper:
                 self.tiles[x][y] = tile
 
         # loop again to find nearby mines and display number on tile
-        for x in range(0, SIZE_X):
-            for y in range(0, SIZE_Y):
+        for x in range(0, self.gridSize):
+            for y in range(0, self.gridSize):
                 mc = 0
                 for n in self.getNeighbors(x, y):
                     mc += 1 if n["isMine"] else 0
@@ -117,35 +169,9 @@ class Minesweeper:
         self.setup()
         self.refreshLabels()
 
-    def gameOver(self, won):
-        for x in range(0, SIZE_X):
-            for y in range(0, SIZE_Y):
-                if self.tiles[x][y]["isMine"] == False and self.tiles[x][y]["state"] == STATE_FLAGGED:
-                    self.tiles[x][y]["button"].config(image=self.images["wrong"])
-                if self.tiles[x][y]["isMine"] == True and self.tiles[x][y]["state"] != STATE_FLAGGED:
-                    self.tiles[x][y]["button"].config(image=self.images["mine"])
-
-        self.tk.update()
-
-        msg = "You Win! Play again?" if won else "You Lose! Play again?"
-        res = tkMessageBox.askyesno("Game Over", msg)
-        if res:
-            self.restart()
-        else:
-            self.tk.quit()
-
-    def countdown(self):
-
-        if self.startTime > 0:
-            mins, secs = divmod(self.startTime, 60)
-            timer = '{:02d}:{:02d}'.format(mins, secs)
-            self.startTime -= 1
-            self.frame.update()
-            time.sleep(1)
-            print(self.startTime)
-            self.labels["time"].config(text=timer)
-        else:
-            self.labels["time"].config(text="time is up")
+    def refreshLabels(self):
+        self.labels["flags"].config(text="Flags: " + str(self.flagCount))
+        self.labels["mines"].config(text="Mines: " + str(self.mines))
 
     def updateTimer2(self):
         mins, secs = divmod(self.startTime, 60)
@@ -177,6 +203,23 @@ class Minesweeper:
                 pass
         return neighbors
 
+    def gameOver(self, won):
+        for x in range(0, self.gridSize):
+            for y in range(0, self.gridSize):
+                if self.tiles[x][y]["isMine"] == False and self.tiles[x][y]["state"] == STATE_FLAGGED:
+                    self.tiles[x][y]["button"].config(image=self.images["wrong"])
+                if self.tiles[x][y]["isMine"] == True and self.tiles[x][y]["state"] != STATE_FLAGGED:
+                    self.tiles[x][y]["button"].config(image=self.images["mine"])
+
+        self.tk.update()
+
+        msg = "You Win! Play again?" if won else "You Lose! Play again?"
+        res = tkMessageBox.askyesno("Game Over", msg)
+        if res:
+            self.restart()
+        else:
+            self.tk.quit()
+
     def onClickWrapper(self, x, y):
         return lambda Button: self.onClick(self.tiles[x][y])
 
@@ -202,7 +245,7 @@ class Minesweeper:
         if tile["state"] != STATE_CLICKED:
             tile["state"] = STATE_CLICKED
             self.clickedCount += 1
-        if self.clickedCount == (SIZE_X * SIZE_Y) - self.mines:
+        if self.clickedCount == (self.gridSize * self.gridSize) - self.mines:
             self.gameOver(True)
 
     def onRightClick(self, tile):
@@ -256,11 +299,18 @@ class Minesweeper:
         self.clickedCount += 1
 
 
-def main():
+### END OF CLASSES ###
 
+def main():
+    # create Tk instance
     window = Tk()
+    settings = Tk()
+    # set program title
     window.title("Minesweeper")
-    minesweeper = Minesweeper(window)
+    # create game instance
+    # minesweeper = Minesweeper(window)
+    sets = Settings(settings)
+    # run event loop
     window.mainloop()
 
 
