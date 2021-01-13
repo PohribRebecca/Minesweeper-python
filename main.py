@@ -206,6 +206,17 @@ class Minesweeper:
                 tile["button"].grid(row=x + 1, column=y)  # offset by 1 row for timer
 
                 self.tiles[x][y] = tile
+                '''
+                if ((x * self.gridSize + y) % ((self.gridSize * self.gridSize) / self.mines)) == 0:
+                    tile['isMine'] = True
+
+       
+          for i in range(self.mines):
+            x, y = random.randint(0, self.gridSize), random.randint(0, self.gridSize)
+            self.tiles[x][y].tile({'isMine': True})
+           # self.tiles[x][y]["isMine"] = True
+        '''
+
 
 
         # loop again to find nearby mines and display number on tile
